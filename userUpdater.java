@@ -6,6 +6,7 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Random;
+import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -21,6 +22,23 @@ public class UserUpdater {
      */
     
     public static void main(String[] args) {
+        
+        double perc;
+        
+        Scanner in = new Scanner(System.in);
+        
+        System.out.println("Enter percent of people to update (0.0 - 1.0)");
+        perc = in.nextDouble();
+        
+        if(perc < 0){
+            perc = -perc;
+            System.out.println("Input can't be negative.  Converted to absolute value.");
+        }
+        
+        if(perc > 1){
+            System.out.println("Input too big, resized to 1");
+            perc = 1;
+        }
         
         PreparedStatement stmt;
         PreparedStatement stmt1;
@@ -41,65 +59,27 @@ public class UserUpdater {
         }
         try{
                 con = (Connection)DriverManager.getConnection(url);
-
+                int count = 0;
+                
                 stmt = (PreparedStatement)con.prepareStatement("SELECT * FROM Player");
                 rs = stmt.executeQuery();
                 while(rs.next()){
-                    String hold = rs.getString("username");
-                    double upp = rs.getDouble("e_points") + rand.nextDouble() * 300;
-                    
-                    stmt2 = (PreparedStatement) con.prepareStatement("UPDATE Player SET e_points="+upp+" WHERE username='"+hold+"'");
-                    stmt2.executeUpdate();
-                    
-                    stmt1 = (PreparedStatement)con.prepareStatement("SELECT * FROM Lives_in WHERE p_username='"+hold+"'");
-                    rs1 = stmt1.executeQuery();
-                    rs1.next();
-
-                    hold = rs1.getString("s_name");
-                    int sf = 0;
-                    switch (hold) {
-                        case "DC":
-                            sf = 7;
-                            break;
-                        case "Delaware":
-                            sf = 8;
-                            break;
-                        default:
-                            while(!hold.equals(states[sf])){
-                                sf++;
-                            }
-                            break;
-                    }
-                    s_points[sf] = s_points[sf] + upp;
+                    count++;
                 }
-
-                for(int sf = 0; sf < 51; sf++){
-                    int hold;
-                    switch(sf){
-                        case 7:
-                            hold = 8;
-                            break;
-                        case 8:
-                            hold = 7;
-                            break;
-                        default:
-                            hold = sf;
-                            break;
-                    }
-                    stmt2 = (PreparedStatement) con.prepareStatement("UPDATE Location SET generalpoints="+s_points[hold]+" WHERE state_name='"+states[hold]+"'");
-                    stmt2.executeUpdate();
-                }
+                rs.first();
                 
-                stmt = (PreparedStatement)con.prepareStatement("SELECT * FROM Location ORDER BY generalpoints DESC");
-                rs = stmt.executeQuery();
-                int rankc = 0;
-                while(rs.next()){
-                    String hold = rs.getString("state_name");
-                    stmt1 = (PreparedStatement)con.prepareStatement("UPDATE Location SET rank="+rankc+" WHERE state_name='"+hold+"'");
+                count = (int) (count * perc);
+                System.out.println(count);
+                int inc = 0;
+                while(inc < count){
+                    String hold = rs.getString("username");
+                    double upp = rand.nextDouble() * 5;
+                    
+                    stmt1 = (PreparedStatement) con.prepareStatement("INSERT INTO Upload(distance, p_username, eType,upload_date,upload_time) VALUES ("+upp+",'"+hold+"','walking', NOW(),CURTIME())");
                     stmt1.executeUpdate();
-                    rankc++;
-                }      
-
+                    inc++;
+                    rs.next();
+                }
                 try {
                     System.out.println("waiting");
                     con.close();
