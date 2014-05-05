@@ -2,16 +2,12 @@ package usermaker;
 
 import com.mysql.jdbc.Connection;
 import com.mysql.jdbc.PreparedStatement;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.Random;
-import java.util.concurrent.TimeUnit;
 
 /**
  *
@@ -24,6 +20,8 @@ public class UserMaker {
      */
     
     public static void main(String[] args) {
+        
+        
         
         String url = "jdbc:mysql://128.6.29.222:3306/nhcgame?user=root&password=TheoMensah";
         PreparedStatement stmt;
@@ -45,16 +43,7 @@ public class UserMaker {
         ResultSet rs;
         ResultSet rs1;
         ResultSet rs2;
-        
-        File file = new File("names.txt");
-        if(!file.exists()){
-            try {
-                file.createNewFile();
-            } catch (IOException ex) {
-                Logger.getLogger(UserMaker.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        }
-        
+
         for(int i=0; i<51; i++){
             fakepop[i] = (int)((Integer.parseInt(state_pop[i])/100000) * (1-state_per[i]/100));
         }
@@ -67,20 +56,22 @@ public class UserMaker {
         }
         
         try {
-            FileWriter fw = new FileWriter("names.txt",true);
+            //FileWriter fw = new FileWriter("names.txt",true);
             for(int y = 0; y < 1; y++){
                 double[] s_points = new double[51];
                 con = (Connection)DriverManager.getConnection(url);
                 //Start Zombie Creation
-
                 String usernames;
                 double epoints;
-                int k;
+                
                 int h;
+                
                 for(h=0;h<51;h++){
                     int l = fakepop[h];
+                    
+                    int k;
                     for(k=0;k<l;k++){
-                        epoints = rand.nextDouble() * 300;
+                        epoints = rand.nextDouble() * 5;
                         uname_len = 1 + rand.nextInt(10);
                         
                         int statenum = h;
@@ -100,9 +91,6 @@ public class UserMaker {
                         for(j = 0; j < uname_len; j++){
                             usernames += alphabet[rand.nextInt(slen)];
                         }
-                       
-                        fw.write(usernames + "\n");
-                        fw.flush();
 
                         stmt = (PreparedStatement)con.prepareStatement("SELECT * FROM Player");
                         rs = stmt.executeQuery();
@@ -117,87 +105,23 @@ public class UserMaker {
                         }catch(SQLException sqlex){
                             
                         }
-                        stmt = (PreparedStatement) con.prepareStatement("INSERT INTO Player (username, e_points, phone_number, password, sex) VALUES ('"+usernames+"', "+epoints+", '555-555-5555', 'test', '"+sex+"')");
+                        
+                        stmt = (PreparedStatement) con.prepareStatement("INSERT INTO Player (username, phone_number, password, sex) VALUES ('"+usernames+"', '555-555-5555', 'test', '"+sex+"')");
                         stmt.executeUpdate();
                         stmt = (PreparedStatement) con.prepareStatement("INSERT INTO Lives_in (s_name, p_username) VALUES ('"+states[statenum]+"', '"+usernames+"')");
                         stmt.executeUpdate();
+                        stmt = (PreparedStatement) con.prepareStatement("INSERT INTO Upload(distance, p_username, eType,upload_date,upload_time) "
+		  			+ "VALUES ("+epoints+",'"+usernames+"','walking', NOW(),CURTIME())");
+                        stmt.executeUpdate();
+                        
                     }
                 }
-                fw.close();
-                //End Zombie Creation
 
-                stmt = (PreparedStatement)con.prepareStatement("SELECT * FROM Player");
-                rs = stmt.executeQuery();
-                
-                while(rs.next()){
-                    String hold = rs.getString("username");
-                    stmt1 = (PreparedStatement)con.prepareStatement("SELECT * FROM Lives_in WHERE p_username='"+hold+"'");
-                    rs1 = stmt1.executeQuery();
-                    rs1.next();
-
-                    hold = rs1.getString("s_name");
-                    int sf = 0;
-                    switch (hold) {
-                        case "DC":
-                            sf = 7;
-                            break;
-                        case "Delaware":
-                            sf = 8;
-                            break;
-                        default:
-                            while(!hold.equals(states[sf])){
-                                sf++;
-                            }
-                            break;
-                    }
-                    s_points[sf] = s_points[sf] + rs.getDouble("e_points");
-                }
-
-                for(int sf = 0; sf < 51; sf++){
-                    int hold;
-                    switch(sf){
-                        case 7:
-                            hold = 8;
-                            break;
-                        case 8:
-                            hold = 7;
-                            break;
-                        default:
-                            hold = sf;
-                            break;
-                    }
-                    stmt2 = (PreparedStatement) con.prepareStatement("UPDATE Location SET generalpoints="+s_points[hold]+" WHERE state_name='"+states[hold]+"'");
-                    stmt2.executeUpdate();
-                    stmt2 = (PreparedStatement) con.prepareStatement("UPDATE Location SET female_pop="+fpop[hold]+" WHERE state_name='"+states[hold]+"'");
-                    stmt2.executeUpdate();
-                    stmt2 = (PreparedStatement) con.prepareStatement("UPDATE Location SET male_pop="+mpop[hold]+" WHERE state_name='"+states[hold]+"'");
-                    stmt2.executeUpdate();
-                }
-                
-                stmt = (PreparedStatement)con.prepareStatement("SELECT * FROM Location ORDER BY generalpoints DESC");
-                rs = stmt.executeQuery();
-                int rankc = 0;
-                while(rs.next()){
-                    String hold = rs.getString("state_name");
-                    stmt1 = (PreparedStatement)con.prepareStatement("UPDATE Location SET rank="+rankc+" WHERE state_name='"+hold+"'");
-                    stmt1.executeUpdate();
-                    rankc++;
-                }        
-                try {
-                    System.out.println("waiting");
-                    con.close();
-                    TimeUnit.MINUTES.sleep(1);
-                } catch (InterruptedException ex) {
-                    Logger.getLogger(UserMaker.class.getName()).log(Level.SEVERE, null, ex);
-                }
-            
             }
             System.out.println("success");
         } catch (SQLException ex) {
             Logger.getLogger(UserMaker.class.getName()).log(Level.SEVERE, null, ex);
             System.exit(1);
-        } catch (IOException ex) {
-            Logger.getLogger(UserMaker.class.getName()).log(Level.SEVERE, null, ex);
-        } 
+        }
     }
 }
